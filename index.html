@@ -86,7 +86,9 @@
   position: relative;
   zoom: 0.8; /* 0.667 × 1.2 */
   transform-origin: top left;
+  top: 25px;
 }
+
 
 .modal {
   display: none;
@@ -1659,16 +1661,36 @@ function createTopMenu(marker) {
     menu.appendChild(row);
     menu.appendChild(icons);
     document.body.appendChild(menu);
-
-    /* === ЗАКРЫТИЕ МЕНЮ === */
+    // обновлено — линия теперь исчезает при закрытии меню
     document.getElementById(`closeTopMenu-${objectId}`).onclick = () => {
-        menu.remove();
+        // вернуть иконку в обычный вид, если была раскрыта
+if (marker._expanded) {
+    marker.setIcon(L.divIcon({
+        className: "icon",
+        html: marker._originalIconHtml,
+        iconSize: marker._originalSize,
+        iconAnchor: marker._originalAnchor
+    }));
+    marker._expanded = false;
+}
 
-        // удалить линию направления
-        if (typeof headingLine !== 'undefined' && headingLine) {
-            map.removeLayer(headingLine);
-            headingLine = null;
-        }
+        menu.remove();
+    // если есть линия направления — удалить
+    if (headingLine) {
+        map.removeLayer(headingLine);
+        headingLine = null;
+    }
+
+    // 🔥 если иконка была изменена — вернуть исходную
+    if (marker.isExpanded) {
+        marker.setIcon(L.divIcon({
+            className: 'icon',
+            html: iconHtml,
+            iconSize: [28.8, 28.8],
+            iconAnchor: [14.4, 14.4],
+        }));
+        marker.isExpanded = false;
+    }
 
         // ✅ перерасчёт всех меню С УЧЁТОМ SAFE-TOP
         const allMenus = document.querySelectorAll('[id^="top-menu-"]');
