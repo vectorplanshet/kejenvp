@@ -23,9 +23,37 @@
 ></script>
     <style>
         /* General Map Styles */
-        #map {
-            height: 100vh;
-        }
+#map {
+  position: relative;
+  height: 100vh;
+}
+
+/* ВЕРХНЯЯ ПОЛОСА */
+#map::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 25px;
+  background: #000;
+  z-index: 1500;
+  pointer-events: none;
+}
+
+/* НИЖНЯЯ ПОЛОСА */
+#map::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background: #000;
+  z-index: 1500;
+  pointer-events: none;
+}
+
 
         html, body {
     margin: 0;
@@ -497,6 +525,8 @@ body {
     display: flex;
     flex-direction: column;
     gap: 16px;
+        bottom: calc(var(--safe-bottom) + 26px);
+
     z-index: 1000;
 }
 
@@ -541,31 +571,36 @@ body {
 .custom-button.green {
     background-color: rgb(223, 223, 223);
 }
+:root {
+  --safe-top: 25px;
+  --safe-bottom: 50px;
+}
 
 #warning-message {
     position: fixed;
-    top: 0;
+    top: calc(var(--safe-top) + 0px);
     width: 100%;
-    height: 20px;             /* 16.7 × 1.2 */
+    height: 20px;
     background-color: rgba(0, 0, 0, 0.8);
     color: rgb(255, 0, 68);
     text-align: center;
-    padding: 4px;             /* 3.3 × 1.2 */
-    font-size: 11.2px;        /* 9.3 × 1.2 */
+    padding: 4px;
+    font-size: 11.2px;
     z-index: 9999;
 }
 
 .menu-text {
     position: fixed;
-    right: 16px;              /* 13.3 × 1.2 */
-    bottom: 6.4px;            /* 5.3 × 1.2 */
-    font-size: 12.8px;        /* 10.7 × 1.2 */
+    right: 16px;
+    bottom: calc(var(--safe-bottom) + 6.4px);
+    font-size: 12.8px;
     color: rgba(0, 0, 0, 0.3);
     line-height: 1;
     text-align: right;
     margin-bottom: 0;
-    padding-top: 4.8px;       /* 4 × 1.2 */
+    padding-top: 4.8px;
 }
+
 
 /* Блок динамического зума */
 .dynamic-zoom {
@@ -574,6 +609,7 @@ body {
     left: 50%;
     transform: translateX(-50%);
     display: flex;
+        bottom: calc(var(--safe-bottom) + 24px);
     flex-direction: row;
     gap: 12px;                /* 10 × 1.2 */
     opacity: 0;
@@ -632,6 +668,9 @@ body {
     <div id="leaflet-control-layers"></div>
     </div>
     <div class="overlay"></div>
+    <body>
+  
+
     <div id="map"></div>
 <div class="custom-menu">
   <div class="menu-row">
@@ -1350,8 +1389,8 @@ iconHtml = `
         icon = L.divIcon({
             className: 'icon',
             html: iconHtml,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12],
+            iconSize: [28.8, 28.8],
+            iconAnchor: [14.4, 14.4],
         });
     }
 }
