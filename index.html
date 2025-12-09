@@ -84,16 +84,12 @@
 .leaflet-control-layers {
   z-index: 2000;
   position: relative;
-  zoom: 0.8;
+  zoom: 0.8; /* 0.667 × 1.2 */
   transform-origin: top left;
   top: 25px;
-
-  display: none; /* скрыт при загрузке */
 }
 
-.leaflet-control-layers.active {
-  display: block;
-}
+
 .modal {
   display: none;
   position: fixed;
@@ -700,17 +696,12 @@ body {
     </div>
   </div>
 
-<div class="menu-row">
-  <div style="width: 130px;"></div>
-  <div class="custom-button">
-    <img
-      id="toggleLayersImg"
-      src="pryamougol.png"
-      alt="Layer"
-      style="cursor: pointer;"
-    />
+  <div class="menu-row">
+    <div style="width: 130px;"></div>
+    <div class="custom-button">
+      <img src="pryamougol.png" alt="Layer" />
+    </div>
   </div>
-</div>
 
   <div class="menu-row">
     <div style="width: 130px;"></div>
@@ -2001,9 +1992,9 @@ function openCoordsModal(callback) {
     box.className = 'modal show coords-modal-top-left';
     box.innerHTML = `
         <h2>Выберите точки маршрута</h2>
-        <textarea id="coordsInput" placeholder="Кликай колёсиком по карте"
-            style="width:100%;height:80px;font-size:7px;background:#1e232c;color:#fff;
-            border:1px solid #3a4152;border-radius:4px;padding:3px;"></textarea>
+        <textarea id="coordsInput" placeholder="Тапай по карте"
+            style="width:100%;height:80px;font-size:10px;background:#1e232c;color:#fff;
+            border:1px solid #3a4152;border-radius:4px;padding:5px;"></textarea>
         <button id="coordsOk" class="modal-button">OK</button>
         <button id="coordsCancel" class="modal-button">Отмена</button>
     `;
@@ -2012,55 +2003,56 @@ function openCoordsModal(callback) {
     box.style.left = '20px';
     box.style.transform = 'none';
 
-    let isDragging = false, offsetX, offsetY;
-    box.onmousedown = (e) => {
-        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "BUTTON") return;
-        isDragging = true;
-        offsetX = e.clientX - box.offsetLeft;
-        offsetY = e.clientY - box.offsetTop;
-        document.onmousemove = (ev) => {
-            if (isDragging) {
-                box.style.left = ev.clientX - offsetX + "px";
-                box.style.top = ev.clientY - offsetY + "px";
-            }
-        };
-        document.onmouseup = () => {
-            isDragging = false;
-            document.onmousemove = null;
-            document.onmouseup = null;
-        };
-    };
-
+    // ===== маршрут =====
     const textarea = box.querySelector('#coordsInput');
+
     let tempWaypoints = [marker.getLatLng()];
-    let routeLine = L.polyline(tempWaypoints, { color: '#dd0347', weight: 1, opacity: 1 }).addTo(map);
+    let routeLine = L.polyline(tempWaypoints, {
+        color: '#dd0347',
+        weight: 2,
+        opacity: 1
+    }).addTo(map);
+
+    // ❗ флаг режима маршрута
+    let routeMode = true;
 
     const addCoord = (e) => {
-        if (e.originalEvent.button !== 1) return;
-        e.originalEvent.preventDefault();
-        const latlng = map.mouseEventToLatLng(e.originalEvent);
-        textarea.value += latlng.lat.toFixed(5) + "," + latlng.lng.toFixed(5) + "\n";
+        if (!routeMode) return;
+
+        const latlng = e.latlng;
+
+        textarea.value +=
+            latlng.lat.toFixed(5) + "," +
+            latlng.lng.toFixed(5) + "\n";
+
         tempWaypoints.push(latlng);
         routeLine.setLatLngs(tempWaypoints);
     };
 
-    map.on('mousedown', addCoord);
+    // ✅ работает и на ПК, и на планшете
+    map.on('click', addCoord);
 
     box.querySelector('#coordsOk').onclick = () => {
-        map.off('mousedown', addCoord);
+        routeMode = false;
+        map.off('click', addCoord);
         map.removeLayer(routeLine);
+
         const coordsText = textarea.value.trim();
         callback(coordsText);
+
         document.body.removeChild(box);
         document.body.removeChild(background);
     };
 
     box.querySelector('#coordsCancel').onclick = () => {
-        map.off('mousedown', addCoord);
+        routeMode = false;
+        map.off('click', addCoord);
         map.removeLayer(routeLine);
+
+        callback(null);
+
         document.body.removeChild(box);
         document.body.removeChild(background);
-        callback(null);
     };
 }
 
@@ -2375,12 +2367,7 @@ function getNextLitakId() {
 
     document.getElementById('zoom-in').onclick = () => map.zoomIn();
     document.getElementById('zoom-out').onclick = () => map.zoomOut();
-                  const img = document.getElementById('toggleLayersImg');
-  const layers = document.querySelector('.leaflet-control-layers');
 
-  img.addEventListener('click', () => {
-    layers.classList.toggle('active');
-  });
     </script>
 </body>
 </html>
