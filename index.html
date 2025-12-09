@@ -84,12 +84,16 @@
 .leaflet-control-layers {
   z-index: 2000;
   position: relative;
-  zoom: 0.8; /* 0.667 × 1.2 */
+  zoom: 0.8;
   transform-origin: top left;
   top: 25px;
+
+  display: none; /* скрыт при загрузке */
 }
 
-
+.leaflet-control-layers.active {
+  display: block;
+}
 .modal {
   display: none;
   position: fixed;
@@ -696,12 +700,17 @@ body {
     </div>
   </div>
 
-  <div class="menu-row">
-    <div style="width: 130px;"></div>
-    <div class="custom-button">
-      <img src="pryamougol.png" alt="Layer" />
-    </div>
+<div class="menu-row">
+  <div style="width: 130px;"></div>
+  <div class="custom-button">
+    <img
+      id="toggleLayersImg"
+      src="pryamougol.png"
+      alt="Layer"
+      style="cursor: pointer;"
+    />
   </div>
+</div>
 
   <div class="menu-row">
     <div style="width: 130px;"></div>
@@ -2366,7 +2375,12 @@ function getNextLitakId() {
 
     document.getElementById('zoom-in').onclick = () => map.zoomIn();
     document.getElementById('zoom-out').onclick = () => map.zoomOut();
+                  const img = document.getElementById('toggleLayersImg');
+  const layers = document.querySelector('.leaflet-control-layers');
 
+  img.addEventListener('click', () => {
+    layers.classList.toggle('active');
+  });
     </script>
 </body>
 </html>
