@@ -84,12 +84,16 @@
 .leaflet-control-layers {
   z-index: 2000;
   position: relative;
-  zoom: 0.8; /* 0.667 × 1.2 */
+  zoom: 0.8;
   transform-origin: top left;
   top: 25px;
+
+  display: none; /* скрыт при загрузке */
 }
 
-
+.leaflet-control-layers.active {
+  display: block;
+}
 .modal {
   display: none;
   position: fixed;
@@ -654,6 +658,22 @@ body {
     left: 9.6px;              /* 8 × 1.2 */
     transform: rotate(-180deg);
 }
+.leaflet-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+
+  opacity: 0.3;
+  background-repeat: repeat;
+
+  /* СУЩЕСТВЕННО БОЛЬШЕ ЗАЗОР */
+  background-size: 140px 125px;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='125'%3E%3Cg transform='rotate(-41 70 62.5)'%3E%3Ctext x='70' y='22' text-anchor='middle' font-family='Arial' font-size='16' fill='%23000' fill-opacity='0.75'%3Ec0a87941%3C/text%3E%3Ctext x='22' y='62.5' text-anchor='middle' font-family='Arial' font-size='16' fill='%23000' fill-opacity='0.75'%3Ec0a87941%3C/text%3E%3Ctext x='118' y='62.5' text-anchor='middle' font-family='Arial' font-size='16' fill='%23000' fill-opacity='0.75'%3Ec0a87941%3C/text%3E%3Ctext x='70' y='105' text-anchor='middle' font-family='Arial' font-size='16' fill='%23000' fill-opacity='0.75'%3Ec0a87941%3C/text%3E%3C/g%3E%3C/svg%3E");
+}
+
+
 
     </style>
 </head>
@@ -668,8 +688,6 @@ body {
         </div>
     </div>
     <div id="leaflet-control-layers"></div>
-    </div>
-    <div class="overlay"></div>
     <body>
   
 
@@ -696,12 +714,17 @@ body {
     </div>
   </div>
 
-  <div class="menu-row">
-    <div style="width: 130px;"></div>
-    <div class="custom-button">
-      <img src="pryamougol.png" alt="Layer" />
-    </div>
+<div class="menu-row">
+  <div style="width: 130px;"></div>
+  <div class="custom-button">
+    <img
+      id="toggleLayersImg"
+      src="pryamougol.png"
+      alt="Layer"
+      style="cursor: pointer;"
+    />
   </div>
+</div>
 
   <div class="menu-row">
     <div style="width: 130px;"></div>
@@ -908,34 +931,15 @@ const baseLayers = {
     "Stadia Dark": Stadia_AlidadeSmoothDark
 };
 
-// Добавляем контрол для переключения карт
-L.control.layers(baseLayers).addTo(map);
-map.on('baselayerchange', function (e) {
-    const mapContainer = document.querySelector('.leaflet-container');
+              const watermark = L.DomUtil.create(
+        "div",
+        "leaflet-watermark",
+        map.getContainer()
+      );
 
-    if (e.name === 'OSM Gray' || e.name === 'Google Terrain') {
-        mapContainer.classList.add('dark-map');
-    } else {
-        mapContainer.classList.remove('dark-map');
-    }
-});
-
-// Функция для изменения фильтра на изображении
-function updateOverlayFilter() {
-    const overlay = document.querySelector('.overlay');
-    if (map.hasLayer(darkLayer)) {
-        overlay.style.filter = 'invert(1) brightness(2)';
-    } else {
-        overlay.style.filter = 'none';
-    }
-}
-
-// При добавлении или удалении слоя темной карты
-map.on('layeradd', updateOverlayFilter);
-map.on('layerremove', updateOverlayFilter);
-
-// Если карта уже загружена, сразу применим фильтр
-updateOverlayFilter();
+      L.DomEvent.disableClickPropagation(watermark);
+      L.DomEvent.disableScrollPropagation(watermark);
+        
 
         let currentObjectId = 9500;
         let deleteMode = false;
@@ -1992,9 +1996,9 @@ function openCoordsModal(callback) {
     box.className = 'modal show coords-modal-top-left';
     box.innerHTML = `
         <h2>Выберите точки маршрута</h2>
-        <textarea id="coordsInput" placeholder="Тапай по карте"
-            style="width:100%;height:80px;font-size:10px;background:#1e232c;color:#fff;
-            border:1px solid #3a4152;border-radius:4px;padding:5px;"></textarea>
+        <textarea id="coordsInput" placeholder="Кликай колёсиком по карте"
+            style="width:100%;height:80px;font-size:7px;background:#1e232c;color:#fff;
+            border:1px solid #3a4152;border-radius:4px;padding:3px;"></textarea>
         <button id="coordsOk" class="modal-button">OK</button>
         <button id="coordsCancel" class="modal-button">Отмена</button>
     `;
@@ -2003,56 +2007,55 @@ function openCoordsModal(callback) {
     box.style.left = '20px';
     box.style.transform = 'none';
 
-    // ===== маршрут =====
+    let isDragging = false, offsetX, offsetY;
+    box.onmousedown = (e) => {
+        if (e.target.tagName === "TEXTAREA" || e.target.tagName === "BUTTON") return;
+        isDragging = true;
+        offsetX = e.clientX - box.offsetLeft;
+        offsetY = e.clientY - box.offsetTop;
+        document.onmousemove = (ev) => {
+            if (isDragging) {
+                box.style.left = ev.clientX - offsetX + "px";
+                box.style.top = ev.clientY - offsetY + "px";
+            }
+        };
+        document.onmouseup = () => {
+            isDragging = false;
+            document.onmousemove = null;
+            document.onmouseup = null;
+        };
+    };
+
     const textarea = box.querySelector('#coordsInput');
-
     let tempWaypoints = [marker.getLatLng()];
-    let routeLine = L.polyline(tempWaypoints, {
-        color: '#dd0347',
-        weight: 2,
-        opacity: 1
-    }).addTo(map);
-
-    // ❗ флаг режима маршрута
-    let routeMode = true;
+    let routeLine = L.polyline(tempWaypoints, { color: '#dd0347', weight: 1, opacity: 1 }).addTo(map);
 
     const addCoord = (e) => {
-        if (!routeMode) return;
-
-        const latlng = e.latlng;
-
-        textarea.value +=
-            latlng.lat.toFixed(5) + "," +
-            latlng.lng.toFixed(5) + "\n";
-
+        if (e.originalEvent.button !== 1) return;
+        e.originalEvent.preventDefault();
+        const latlng = map.mouseEventToLatLng(e.originalEvent);
+        textarea.value += latlng.lat.toFixed(5) + "," + latlng.lng.toFixed(5) + "\n";
         tempWaypoints.push(latlng);
         routeLine.setLatLngs(tempWaypoints);
     };
 
-    // ✅ работает и на ПК, и на планшете
-    map.on('click', addCoord);
+    map.on('mousedown', addCoord);
 
     box.querySelector('#coordsOk').onclick = () => {
-        routeMode = false;
-        map.off('click', addCoord);
+        map.off('mousedown', addCoord);
         map.removeLayer(routeLine);
-
         const coordsText = textarea.value.trim();
         callback(coordsText);
-
         document.body.removeChild(box);
         document.body.removeChild(background);
     };
 
     box.querySelector('#coordsCancel').onclick = () => {
-        routeMode = false;
-        map.off('click', addCoord);
+        map.off('mousedown', addCoord);
         map.removeLayer(routeLine);
-
-        callback(null);
-
         document.body.removeChild(box);
         document.body.removeChild(background);
+        callback(null);
     };
 }
 
@@ -2367,7 +2370,12 @@ function getNextLitakId() {
 
     document.getElementById('zoom-in').onclick = () => map.zoomIn();
     document.getElementById('zoom-out').onclick = () => map.zoomOut();
+                  const img = document.getElementById('toggleLayersImg');
+  const layers = document.querySelector('.leaflet-control-layers');
 
+  img.addEventListener('click', () => {
+    layers.classList.toggle('active');
+  });
     </script>
 </body>
 </html>
